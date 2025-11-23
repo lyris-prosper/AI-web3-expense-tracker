@@ -1,18 +1,32 @@
-import { Web3Storage } from 'web3.storage'
-
-const WEB3_STORAGE_TOKEN = process.env.NEXT_PUBLIC_WEB3_STORAGE_TOKEN
+const PINATA_JWT = process.env.PINATA_JWT
 
 export async function uploadToIPFS(data: string): Promise<string | null> {
-  if (!WEB3_STORAGE_TOKEN) {
-    console.error('Web3.Storage token not found')
+  if (!PINATA_JWT) {
+    console.error('Pinata JWT not found')
     return null
   }
 
   try {
-    const client = new Web3Storage({ token: WEB3_STORAGE_TOKEN })
-    const file = new File([data], 'expense.json', { type: 'application/json' })
-    const cid = await client.put([file])
-    return cid
+    // Prepare FormData for pinFileToIPFS
+    const formData = new FormData()
+    const file = new Blob([data], { type: 'application/json' })
+    // @ts-ignore
+    formData.append('file', file, 'expense.json')
+
+    const response = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${PINATA_JWT}`,
+      },
+      body: formData as any, // for TS compatibility in node/browser
+    })
+
+    if (!response.ok) {
+      throw new Error(`Pinata upload failed: ${response.status} ${await response.text()}`)
+    }
+
+    const result = await response.json()
+    return result.IpfsHash || null
   } catch (error) {
     console.error('IPFS upload failed:', error)
     return null
@@ -20,23 +34,14 @@ export async function uploadToIPFS(data: string): Promise<string | null> {
 }
 
 export async function retrieveFromIPFS(cid: string): Promise<string | null> {
-  if (!WEB3_STORAGE_TOKEN) {
-    console.error('Web3.Storage token not found')
-    return null
-  }
-
+  // Pinata uploads to public IPFS gateway, so use a public IPFS gateway to retrieve
   try {
-    const client = new Web3Storage({ token: WEB3_STORAGE_TOKEN })
-    const res = await client.get(cid)
-    if (!res?.ok) {
+    const url = `https://gateway.pinata.cloud/ipfs/${cid}`
+    const response = await fetch(url)
+    if (!response.ok) {
       throw new Error('IPFS retrieval failed')
     }
-    
-    const files = await res.files()
-    if (files.length > 0) {
-      return await files[0].text()
-    }
-    return null
+    return await response.text()
   } catch (error) {
     console.error('IPFS retrieval failed:', error)
     return null
