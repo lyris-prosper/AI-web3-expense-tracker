@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAccount, useSignMessage } from 'wagmi'
 import { WalletConnectButton } from '@/components/WalletConnect'
 import TransactionForm from '@/components/ExpenseForm'
+import ImageUpload from '@/components/ImageUpload'
 import TodayTransactions from '@/components/TodayTransactions'
 import MonthlyStats from '@/components/MonthlyStats'
 import { Transaction } from '@/lib/constants'
@@ -104,8 +105,14 @@ export default function HomePage() {
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* Input Form */}
-        <TransactionForm onTransactionAdded={handleAddTransaction} />
+        {/* Input Methods */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Text Input Form */}
+          <TransactionForm onTransactionAdded={handleAddTransaction} />
+          
+          {/* Image Upload */}
+          <ImageUpload onImageParsed={handleAddTransaction} />
+        </div>
 
         {/* Today's Transactions */}
         <TodayTransactions transactions={transactions} />

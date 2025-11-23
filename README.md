@@ -5,10 +5,16 @@ AI-powered Web3 expense tracking application built with Next.js, RainbowKit, and
 ## Features
 
 - 🤖 **AI Natural Language Processing**: Input expenses in natural language (e.g., "今天吃饭30块")
-- 🔐 **Web3 Data Ownership**: Encrypted data storage on IPFS
+- � **Income & Expense Tracking**: Track both income and expenses with categories
+- �🔐 **Web3 Data Ownership**: Encrypted data storage on IPFS
 - 💳 **Wallet Integration**: Connect with MetaMask and other wallets via RainbowKit
+- 📊 **Smart Statistics**: Today's transactions + monthly income/expense breakdown
+- 📸 **OCR Image Recognition**: Upload receipt photos for automatic data extraction
+
+Planned
 - 🏆 **NFT Milestones**: Earn NFTs for expense tracking milestones
-- 📊 **Monthly Statistics**: Visualize spending patterns
+- � **Visual Charts**: Chart.js integration for spending trends
+- 📤 **Data Export**: Export your financial data
 
 ## Tech Stack
 

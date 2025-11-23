@@ -40,6 +40,26 @@ PINATA_JWT=your_pinata_jwt_token
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id
 ```
 
+#### Verify API Keys
+
+**Test Qwen API**:
+```bash
+curl -X POST https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation \
+  -H "Authorization: Bearer YOUR_QWEN_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"qwen-turbo","input":{"messages":[{"role":"user","content":"你好"}]}}'
+```
+
+**Test Claude API**:
+```bash
+curl -X POST https://api.anthropic.com/v1/messages \
+  -H "x-api-key: YOUR_CLAUDE_KEY" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"claude-3-haiku-20240307","max_tokens":100,"messages":[{"role":"user","content":"Hello"}]}'
+```
+
+
 ### 3. Start Development Server
 
 ```bash
