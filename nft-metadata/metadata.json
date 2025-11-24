@@ -1,0 +1,23 @@
+{
+  "name": "首次记账NFT",
+  "description": "恭喜你完成人生第一笔记账！这是你财富自由之旅的第一步。每一笔记账都是对未来的投资，坚持下去，更多惊喜成就等你解锁！",
+  "image": "ipfs://bafybeiftx5znmhe6zwkm77ffz6rxnhgpbwsjvw2sj67cxo6nb4l4ypgpoi",
+  "attributes": [
+    {
+      "trait_type": "稀有度",
+      "value": "传奇级"
+    },
+    {
+      "trait_type": "成就",
+      "value": "首次记账"
+    },
+    {
+      "trait_type": "类型",
+      "value": "里程碑NFT"
+    },
+    {
+      "trait_type": "铸造时间",
+      "value": "2024"
+    }
+  ]
+}
