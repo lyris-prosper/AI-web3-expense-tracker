@@ -11,11 +11,9 @@ AI-powered Web3 expense tracking application built with Next.js, RainbowKit, and
 - 💳 **Wallet Integration**: Connect with MetaMask and other wallets via RainbowKit
 - 📊 **Smart Statistics**: Today's transactions + monthly income/expense breakdown
 - 📸 **OCR Image Recognition**: Upload receipt photos for automatic data extraction
-
-Planned
-- 🏆 **NFT Milestones**: Earn NFTs for expense tracking milestones
-- 📈 **Visual Charts**: Chart.js integration for spending trends
-- 📤 **Data Export**: Export your financial data
+- 🏆 **NFT Milestones**: Earn NFTs for first expense achievement
+- 📈 **Export & Backup**: CSV export and JSON backup/restore
+- 📤 **AI Financial Insights**: Personalized spending advice from Qwen AI
 
 ## Tech Stack
 
