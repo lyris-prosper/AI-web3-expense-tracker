@@ -7,13 +7,19 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['var(--font-inter)', 'sans-serif'],
+        serif: ['var(--font-playfair)', 'serif'],
+      },
       colors: {
-        primary: {
-          50: '#eff6ff',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-        },
+        primary: '#1a1a1a',
+        secondary: '#666666',
+        accent: '#d4b062',
+        card: '#ffffff',
+        background: '#fcfcfc',
+        success: '#10b981',
+        danger: '#ef4444',
+        warning: '#f59e0b',
       },
     },
   },

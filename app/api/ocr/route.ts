@@ -71,28 +71,28 @@ export async function POST(request: NextRequest) {
 
 async function callQwenVL(imageBase64: string): Promise<OCRResult | null> {
   const prompt = `
-这是一张消费小票或发票的图片。请分析图片内容并提取以下信息：
+This is a receipt or invoice image. Please analyze the content and extract the following information:
 
-要求：
-1. 提取金额（单位：元）
-2. 判断交易类型（支出还是收入）
-3. 根据内容判断分类
-4. 提取日期（如果有），否则使用今天的日期
-5. 简短描述交易内容
+Requirements:
+1. Extract amount (in the original currency)
+2. Determine transaction type (expense or income)
+3. Categorize based on content
+4. Extract date (if available), otherwise use today's date
+5. Brief description of the transaction
 
-支出分类：餐饮、交通、购物、娱乐、其他
-收入分类：工资、转账、其他
+Expense categories: Rent & Bills, Food, Shopping, Transport, Entertainment, Investments
+Income categories: Salary, Transfer, Other
 
-请返回JSON格式，例如：
+Return JSON format, example:
 {
   "type": "expense",
   "amount": 68.5,
-  "category": "餐饮",
+  "category": "Food",
   "date": "2025-11-23",
   "description": "午餐"
 }
 
-只返回JSON，不要其他说明。`
+Return ONLY JSON, no other explanation.`
 
   const response = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation', {
     method: 'POST',
@@ -138,28 +138,28 @@ async function callQwenVL(imageBase64: string): Promise<OCRResult | null> {
 
 async function callClaudeVision(imageBase64: string): Promise<OCRResult | null> {
   const prompt = `
-这是一张消费小票或发票的图片。请分析图片内容并提取以下信息：
+This is a receipt or invoice image. Please analyze the content and extract the following information:
 
-要求：
-1. 提取金额（单位：元）
-2. 判断交易类型（支出还是收入）
-3. 根据内容判断分类
-4. 提取日期（如果有），否则使用今天的日期
-5. 简短描述交易内容
+Requirements:
+1. Extract amount (in the original currency)
+2. Determine transaction type (expense or income)
+3. Categorize based on content
+4. Extract date (if available), otherwise use today's date
+5. Brief description of the transaction
 
-支出分类：餐饮、交通、购物、娱乐、其他
-收入分类：工资、转账、其他
+Expense categories: Rent & Bills, Food, Shopping, Transport, Entertainment, Investments
+Income categories: Salary, Transfer, Other
 
-请返回JSON格式，例如：
+Return JSON format, example:
 {
   "type": "expense",
   "amount": 68.5,
-  "category": "餐饮",
+  "category": "Food",
   "date": "2025-11-23",
   "description": "午餐"
 }
 
-只返回JSON，不要其他说明。`
+Return ONLY JSON, no other explanation.`
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
