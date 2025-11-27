@@ -294,6 +294,74 @@ export default function DashboardPage() {
     setTimeout(() => setUploadStatus(''), 3000)
   }
 
+  const handleBatchImport = async (importedTransactions: Transaction[]) => {
+    if (importedTransactions.length === 0) return
+
+    setUploadStatus(`正在导入 ${importedTransactions.length} 条记录...`)
+
+    let successCount = 0
+    let failCount = 0
+
+    for (let i = 0; i < importedTransactions.length; i++) {
+      const tx = importedTransactions[i]
+      
+      try {
+        const newTransaction: StoredTransaction = {
+          id: tx.id || Date.now().toString() + '-' + i,
+          type: tx.type,
+          amount: tx.amount,
+          category: tx.category as any,
+          date: tx.date,
+          description: tx.description,
+        }
+
+        // 🔐 加密并上传到 IPFS
+        if (isConnected && encryptionKey) {
+          try {
+            const encryptedData = encryptData(newTransaction, encryptionKey)
+            const response = await fetch('/api/ipfs-upload', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ data: encryptedData }),
+            })
+
+            if (response.ok) {
+              const result = await response.json()
+              if (result.cid) {
+                newTransaction.cid = result.cid
+                newTransaction.encrypted = true
+                // 写入区块链
+                addRecord(result.cid)
+              }
+            }
+          } catch (err) {
+            console.error(`Transaction ${i + 1} upload failed:`, err)
+          }
+        }
+
+        // 📝 保存到本地存储
+        const updated = addTransaction(newTransaction)
+        setTransactions(updated)
+        successCount++
+
+        // 更新进度
+        setUploadStatus(`正在导入 ${i + 1}/${importedTransactions.length}...`)
+      } catch (err) {
+        console.error(`Transaction ${i + 1} import failed:`, err)
+        failCount++
+      }
+    }
+
+    // 显示导入结果
+    if (failCount === 0) {
+      setUploadStatus(`✅ 成功导入 ${successCount} 条记录！`)
+    } else {
+      setUploadStatus(`⚠️ 导入完成：成功 ${successCount} 条，失败 ${failCount} 条`)
+    }
+
+    setTimeout(() => setUploadStatus(''), 5000)
+  }
+
   const savingsGoals = [
     { id: '1', name: 'Emergency Fund', targetAmount: 2500, savedAmount: 1500, color: '#ef4444', icon: '🚨', estimatedDate: 'Aug 2025', controlledCategories: [] },
     { id: '2', name: 'Vacation Fund', targetAmount: 2000, savedAmount: 700, color: '#a855f7', icon: '🏖️', estimatedDate: 'Dec 2025', controlledCategories: [] },
@@ -320,6 +388,7 @@ export default function DashboardPage() {
             onConfirmTransaction={handleConfirmTransaction}
             uploadStatus={uploadStatus}
             walletAddress={address}
+            onBatchImport={handleBatchImport}
           />
         </main>
       </div>

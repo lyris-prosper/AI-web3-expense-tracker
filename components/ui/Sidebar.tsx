@@ -47,8 +47,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, isCol
 
         <div className="my-6 border-t border-gray-100" />
 
-        {!isCollapsed && <div className="px-4 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">AI & Insights</div>}
+        {!isCollapsed && <div className="px-4 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">AI Insights</div>}
         <NavItem id="assistant" icon={Sparkles} label="AI Assistant" />
+
+        <div className="my-6 border-t border-gray-100" />
+
+        {!isCollapsed && <div className="px-4 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">NFTs</div>}
         <NavItem id="nfts" icon={Award} label="NFTs" />
 
         <div className="my-6 border-t border-gray-100" />

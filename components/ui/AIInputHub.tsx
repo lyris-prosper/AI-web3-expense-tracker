@@ -1,27 +1,36 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { Camera, ImagePlus, Sparkles, X, ArrowRight } from 'lucide-react';
+import { Camera, ImagePlus, Sparkles, X, ArrowRight, Upload } from 'lucide-react';
 import { Transaction } from '@/lib/constants';
+import { ImportPreviewModal } from './ImportPreviewModal';
+import { detectFileType, processMultipleFiles } from '@/utils/fileParser';
 
 interface AIInputHubProps {
   onAnalyze: (text: string, image?: File) => void;
   isLoading: boolean;
   parsedResult: Transaction | null;
   onConfirmTransaction: () => void;
+  onBatchImport?: (transactions: Transaction[]) => void;
 }
 
 export const AIInputHub: React.FC<AIInputHubProps> = ({ 
   onAnalyze, 
   isLoading,
   parsedResult,
-  onConfirmTransaction
+  onConfirmTransaction,
+  onBatchImport
 }) => {
   const [text, setText] = useState('');
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importedData, setImportedData] = useState<Transaction[]>([]);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importStatus, setImportStatus] = useState('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -44,6 +53,111 @@ export const AIInputHub: React.FC<AIInputHubProps> = ({
   const handleSubmit = async () => {
     onAnalyze(text, selectedImage || undefined);
   };
+
+  const handleImportSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setImportLoading(true);
+    setImportStatus('正在处理文件...');
+
+    try {
+      const fileArray = Array.from(files);
+      const firstFileType = detectFileType(fileArray[0]);
+
+      // 根据文件类型调用不同的 API
+      if (firstFileType === 'csv' || firstFileType === 'excel') {
+        // 只处理第一个文件
+        const file = fileArray[0];
+        const base64 = await fileToBase64(file);
+        
+        const response = await fetch('/api/import-csv', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            fileData: base64,
+            fileName: file.name 
+          })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          setImportedData(result.data);
+          setShowImportModal(true);
+        } else {
+          alert(result.error || '文件解析失败');
+        }
+      } else if (firstFileType === 'image') {
+        // 批量处理图片
+        setImportStatus(`正在识别 ${fileArray.length} 张图片...`);
+        const images = await Promise.all(
+          fileArray.map(file => fileToBase64(file))
+        );
+
+        const response = await fetch('/api/import-images', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ images })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          setImportedData(result.data);
+          setShowImportModal(true);
+          if (result.errors && result.errors.length > 0) {
+            console.warn('部分图片识别失败:', result.errors);
+          }
+        } else {
+          alert(result.error || '图片识别失败');
+        }
+      } else if (firstFileType === 'pdf') {
+        // 处理 PDF
+        const file = fileArray[0];
+        const base64 = await fileToBase64(file);
+        
+        const response = await fetch('/api/import-pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileData: base64 })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          setImportedData(result.data);
+          setShowImportModal(true);
+        } else {
+          alert(result.error || 'PDF 解析失败');
+        }
+      } else {
+        alert('不支持的文件格式');
+      }
+    } catch (error: any) {
+      console.error('文件导入错误:', error);
+      alert(error.message || '文件导入失败');
+    } finally {
+      setImportLoading(false);
+      setImportStatus('');
+      if (importInputRef.current) importInputRef.current.value = '';
+    }
+  };
+
+  const handleConfirmImport = (data: Transaction[]) => {
+    if (onBatchImport) {
+      onBatchImport(data);
+    }
+    setShowImportModal(false);
+    setImportedData([]);
+  };
+
+  // 辅助函数：文件转 Base64
+  async function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve((reader.result as string).split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
 
   return (
     <div className="w-full bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-md">
@@ -96,10 +210,33 @@ export const AIInputHub: React.FC<AIInputHubProps> = ({
               onClick={() => fileInputRef.current?.click()}
               className="p-2 text-secondary hover:text-primary hover:bg-gray-50 rounded-full transition-colors tooltip flex items-center gap-2"
               title="Upload Receipt"
+              disabled={importLoading}
             >
               <ImagePlus className="w-5 h-5" />
               <span className="text-sm font-medium hidden sm:inline">Add Receipt</span>
             </button>
+            
+            {/* Import File Button */}
+            <input
+              type="file"
+              ref={importInputRef}
+              onChange={handleImportSelect}
+              className="hidden"
+              accept=".csv,.xlsx,.xls,.jpg,.jpeg,.png,.pdf"
+              multiple
+            />
+            <button 
+              onClick={() => importInputRef.current?.click()}
+              className="p-2 text-secondary hover:text-primary hover:bg-gray-50 rounded-full transition-colors tooltip flex items-center gap-2"
+              title="Import Files (CSV, Excel, Images, PDF)"
+              disabled={importLoading}
+            >
+              <Upload className="w-5 h-5" />
+              <span className="text-sm font-medium hidden sm:inline">
+                {importLoading ? importStatus : 'Import File'}
+              </span>
+            </button>
+            
             <button 
               className="p-2 text-secondary hover:text-primary hover:bg-gray-50 rounded-full transition-colors md:hidden"
             >
@@ -163,6 +300,14 @@ export const AIInputHub: React.FC<AIInputHubProps> = ({
             </div>
         </div>
       )}
+
+      {/* Import Preview Modal */}
+      <ImportPreviewModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        parsedData={importedData}
+        onConfirmImport={handleConfirmImport}
+      />
     </div>
   );
 };

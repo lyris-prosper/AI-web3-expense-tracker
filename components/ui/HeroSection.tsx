@@ -33,9 +33,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onGetStarted }) => {
           Your Money. <br />
           <span className="italic text-accent relative">
             Your Data.
-            <svg className="absolute w-full h-3 -bottom-1 left-0 text-accent/20" viewBox="0 0 100 10" preserveAspectRatio="none">
-               <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="2" fill="none" />
-            </svg>
           </span> <br />
           Your Rules.
         </h1>

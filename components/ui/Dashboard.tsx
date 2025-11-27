@@ -10,7 +10,11 @@ import { TotalSavingsChart } from './charts/TotalSavingsChart';
 import { AIInputHub } from './AIInputHub';
 import { Transaction, TrendData } from '@/lib/constants';
 import { BudgetState, BudgetCategory, BudgetGoal } from '@/lib/budgetTypes';
-import { Sparkles, ArrowUpRight, ArrowDownRight, TrendingUp, Wallet, ArrowRight } from 'lucide-react';
+import { Sparkles, ArrowUpRight, ArrowDownRight, TrendingUp, Wallet, ArrowRight, Download, Copy, Check, Shield, ChevronRight } from 'lucide-react';
+import { exportToCSV } from '@/utils/backup';
+import { useClipboard } from '@/hooks/useClipboard';
+import AIAssistant from '@/components/AIAssistant';
+import FinancialHealthModal from '@/components/FinancialHealthModal';
 
 interface DashboardProps {
   activeTab: string;
@@ -22,6 +26,7 @@ interface DashboardProps {
   onConfirmTransaction: () => void;
   uploadStatus?: string;
   walletAddress?: string;
+  onBatchImport?: (transactions: Transaction[]) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -33,7 +38,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   parsedResult,
   onConfirmTransaction,
   uploadStatus,
-  walletAddress
+  walletAddress,
+  onBatchImport
 }) => {
   // Budget State
   const [budgetState, setBudgetState] = React.useState<BudgetState>({
@@ -50,6 +56,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
   });
   const [showOnboarding, setShowOnboarding] = React.useState(false);
   const [onboardingMode, setOnboardingMode] = React.useState<'setup' | 'add-goals'>('setup');
+  const [showHealthModal, setShowHealthModal] = React.useState(false);
+
+  // Clipboard functionality for CID copying
+  const { copied, copyToClipboard } = useClipboard();
+  const [copiedCid, setCopiedCid] = React.useState<string | null>(null);
+
+  // CID copy handler with individual tracking
+  const handleCopyCid = async (cid: string, txId: string) => {
+    await copyToClipboard(cid);
+    setCopiedCid(txId);
+    setTimeout(() => setCopiedCid(null), 2000);
+  };
 
   // Check for onboarding trigger when user navigates to budgeting or savings tabs
   React.useEffect(() => {
@@ -198,47 +216,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
     { date: 'Feb 25', amount: 1750 },
   ];
 
-  // Circular Gauge Component
-  const FinancialHealthGauge = ({ score }: { score: number }) => {
-    const radius = 32;
-    const circumference = 2 * Math.PI * radius;
-    const strokeDashoffset = circumference - (score / 100) * circumference;
-
-    return (
-      <div className="relative w-28 h-28 flex items-center justify-center">
-        {/* Background Circle */}
-        <svg className="w-full h-full transform -rotate-90">
-          <circle
-            cx="56"
-            cy="56"
-            r={radius}
-            stroke="currentColor"
-            strokeWidth="6"
-            fill="transparent"
-            className="text-white/20"
-          />
-          {/* Progress Circle */}
-          <circle
-            cx="56"
-            cy="56"
-            r={radius}
-            stroke="currentColor"
-            strokeWidth="6"
-            fill="transparent"
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            strokeLinecap="round"
-            className="text-primary transition-all duration-1000 ease-out"
-          />
-        </svg>
-        <div className="absolute flex flex-col items-center justify-center text-primary">
-          <span className="text-3xl font-bold font-serif">{score}</span>
-          <span className="text-[10px] uppercase tracking-wider font-medium">Excellent</span>
-        </div>
-      </div>
-    );
-  };
-
   const renderSavingsView = () => (
     <div className="space-y-8 animate-in fade-in duration-500">
       <SavingsPage
@@ -321,7 +298,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
          <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-6">
                <h2 className="text-xl font-bold text-primary">Recent Transactions</h2>
-               <div className="text-sm text-secondary">Total: {transactions.length} transactions</div>
+               <div className="flex items-center gap-3">
+                  <div className="text-sm text-secondary">Total: {transactions.length} transactions</div>
+                  <button
+                     onClick={() => {
+                        if (transactions.length === 0) {
+                           alert('No transactions to export');
+                           return;
+                        }
+                        exportToCSV(transactions);
+                     }}
+                     disabled={transactions.length === 0}
+                     className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-full hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium shadow-sm"
+                     title="Export all transactions to CSV"
+                  >
+                     <Download className="w-4 h-4" />
+                     <span className="hidden sm:inline">Export</span>
+                  </button>
+               </div>
             </div>
             {sortedTransactions.length === 0 ? (
               <div className="text-center py-12 text-secondary">
@@ -342,8 +336,33 @@ export const Dashboard: React.FC<DashboardProps> = ({
                               </div>
                            </div>
                         </div>
-                        <div className={`font-semibold ${tx.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>
-                           {tx.type === 'income' ? '+' : '-'}${Math.abs(tx.amount).toFixed(2)}
+                        <div className="flex items-center gap-3">
+                           <div className="text-right">
+                              {/* Amount */}
+                              <div className={`font-semibold ${tx.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>
+                                 {tx.type === 'income' ? '+' : '-'}${Math.abs(tx.amount).toFixed(2)}
+                              </div>
+
+                              {/* CID Display with Copy Button */}
+                              {tx.cid && (
+                                 <div className="flex items-center gap-1 mt-1">
+                                    <span className="text-xs text-gray-400 font-mono" title={tx.cid}>
+                                       {tx.cid.slice(0, 8)}...
+                                    </span>
+                                    <button
+                                       onClick={() => handleCopyCid(tx.cid!, tx.id)}
+                                       className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
+                                       title={`Copy CID: ${tx.cid}`}
+                                    >
+                                       {copiedCid === tx.id ? (
+                                          <Check className="w-3 h-3 text-green-500" />
+                                       ) : (
+                                          <Copy className="w-3 h-3 text-gray-400" />
+                                       )}
+                                    </button>
+                                 </div>
+                              )}
+                           </div>
                         </div>
                     </div>
                  ))}
@@ -353,6 +372,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </div>
     );
   };
+
+  const renderAssistantView = () => (
+    <AIAssistant transactions={transactions} />
+  );
 
   const renderDashboardView = () => (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-500 items-stretch">
@@ -366,6 +389,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 isLoading={isLoading}
                 parsedResult={parsedResult}
                 onConfirmTransaction={onConfirmTransaction}
+                onBatchImport={onBatchImport}
             />
 
             {/* PART 2: Total Savings Chart */}
@@ -399,20 +423,30 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Right Sidebar - 1 Column */}
         <div className="space-y-6 flex flex-col h-full">
             
-             {/* AI Insights Card (Financial Health) - Gold Theme */}
-             <div className="bg-gradient-to-br from-amber-100 to-accent rounded-3xl p-6 text-primary relative overflow-hidden shadow-sm border border-accent/20">
-                <div className="relative z-10 flex flex-col items-center text-center">
-                    <div className="mb-4">
-                       <FinancialHealthGauge score={76} />
-                    </div>
-                    <h3 className="font-bold text-lg mb-1">Financial Health Score</h3>
-                    <p className="text-sm opacity-80 mb-0">
-                       You're spending within your means! Keep it up or set a savings goal.
-                    </p>
-                </div>
-                {/* Decorative background element */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-2xl -mr-10 -mt-10"></div>
-                <div className="absolute bottom-0 left-0 w-24 h-24 bg-yellow-400/20 rounded-full blur-xl -ml-10 -mb-10"></div>
+             {/* Financial Health Card - Clickable */}
+             <div
+               onClick={() => setShowHealthModal(true)}
+               className="bg-gradient-to-br from-amber-200 via-amber-100 to-yellow-100 rounded-3xl p-6 text-gray-900 relative overflow-hidden shadow-sm border border-amber-200/50 cursor-pointer hover:shadow-md transition-shadow"
+             >
+               <div className="relative z-10 flex flex-col items-center text-center">
+                 {/* Shield Icon */}
+                 <div className="mb-4 w-20 h-20 bg-amber-50/80 rounded-full flex items-center justify-center shadow-inner">
+                   <Shield className="w-10 h-10 text-amber-700" strokeWidth={1.5} />
+                 </div>
+
+                 {/* Title */}
+                 <h3 className="font-serif font-bold text-2xl mb-4 text-gray-900">Financial Health</h3>
+
+                 {/* Button */}
+                 <button className="w-full flex items-center justify-between px-5 py-3 bg-amber-50/80 rounded-xl hover:bg-amber-50 transition-colors">
+                   <span className="text-sm font-medium text-gray-700">Check your financial health</span>
+                   <ChevronRight className="w-5 h-5 text-gray-500" />
+                 </button>
+               </div>
+
+               {/* Decorative background elements */}
+               <div className="absolute top-0 right-0 w-32 h-32 bg-white/30 rounded-full blur-2xl -mr-10 -mt-10"></div>
+               <div className="absolute bottom-0 left-0 w-24 h-24 bg-yellow-300/20 rounded-full blur-xl -ml-10 -mb-10"></div>
              </div>
 
              {/* Monthly Overview Widget - Expanding to align bottom */}
@@ -470,8 +504,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                {activeTab === 'savings' && 'Savings & Goals'}
                {activeTab === 'budgeting' && 'Budgeting & Expenses'}
                {activeTab === 'transactions' && 'Transactions'}
+               {activeTab === 'assistant' && 'AI Assistant'}
              </h1>
-             <p className="text-secondary text-sm">Welcome back, Alex</p>
+             <p className="text-secondary text-sm">Welcome back! Start your journey to financial freedom.🎉</p>
           </div>
           <div className="flex items-center gap-4">
              <div className="hidden md:flex flex-col items-end gap-1">
@@ -512,8 +547,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {activeTab === 'savings' && renderSavingsView()}
       {activeTab === 'budgeting' && renderBudgetingView()}
       {activeTab === 'transactions' && renderTransactionsView()}
-      
-      <OnboardingModal 
+      {activeTab === 'assistant' && renderAssistantView()}
+
+      {/* Financial Health Modal */}
+      <FinancialHealthModal
+        isOpen={showHealthModal}
+        onClose={() => setShowHealthModal(false)}
+        transactions={transactions}
+      />
+
+      <OnboardingModal
         isOpen={showOnboarding}
         onClose={() => setShowOnboarding(false)}
         onComplete={handleOnboardingComplete}
